@@ -1,182 +1,129 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global Funding Overview 2026</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+<title>OCHA Funding Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+
 <style>
-:root{--primary:#009EDB;--dark:#004987;--bg:#F5F7FA;--border:#E0E0E0}
-body{margin:0;font-family:Roboto;background:var(--bg)}
-.header{background:var(--primary);color:white;padding:10px 20px;display:flex;justify-content:space-between}
-.header-left{display:flex;align-items:center;gap:12px}
-.container{max-width:1200px;margin:20px auto;padding:0 20px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.card{background:white;padding:15px;border:1px solid var(--border)}
+body {font-family:Roboto;margin:0;background:#f5f7fa}
+.header {background:#009EDB;color:white;padding:12px 20px;display:flex;justify-content:space-between}
+.header img{height:40px}
+.container {max-width:1200px;margin:auto;padding:20px}
+.card {background:white;padding:15px;margin-bottom:20px;border:1px solid #ddd}
+.kpis {display:flex;gap:10px;margin-bottom:20px}
+.kpi {flex:1;background:white;padding:10px;border:1px solid #ddd}
+.grid {display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .full{grid-column:1/span 2}
-.kpis{display:flex;gap:10px;margin-bottom:10px}
-.kpi{flex:1;background:white;padding:10px;border:1px solid var(--border)}
-@media(max-width:768px){.grid{grid-template-columns:1fr}}
+button {background:#004987;color:white;border:none;padding:8px 12px;cursor:pointer}
 </style>
 </head>
+
 <body>
+
 <div class="header">
-  <div class="header-left">
-    <img src="OCHA-Logo.png" height="40">
-    <h2>Global Funding Overview 2026</h2>
+  <div style="display:flex;gap:10px;align-items:center">
+    <img src="OCHA-Logo.png">
+    <h3>Global Funding Overview 2026</h3>
+  </div>
+  <div>
+    <button onclick="toggleMenu()">Download</button>
+    <div id="menu" style="display:none;background:white;position:absolute">
+      <a href="2026-06-08.json">Overview</a><br>
+      <a href="2026-06-09.json">Flows</a>
+    </div>
+    <div style="font-size:12px">For Internal Use Only</div>
   </div>
 </div>
+
 <div class="container">
+
+<div id="status" class="card">Loading data...</div>
+
 <div id="kpis" class="kpis"></div>
+
 <div class="grid">
+
 <div class="card">
-<h3>Funding by Donor</h3>
+<h4>Top Donors</h4>
 <svg id="donorChart" height="250"></svg>
 </div>
+
 <div class="card">
-<h3>Funding by Recipient</h3>
+<h4>Top Recipients</h4>
 <svg id="recipientChart" height="250"></svg>
 </div>
+
 <div class="card full">
-<h3>Funding Flows (Top 20)</h3>
+<h4>Funding Flows (Top 20)</h4>
 <svg id="sankeyChart" height="400"></svg>
 </div>
+
 <div class="card full">
-<h3>Data Table</h3>
-<table id="dataTable"></table>
+<h4>Table</h4>
+<table id="table"></table>
 </div>
+
 </div>
 </div>
 
 <script>
 
-console.log("INIT dashboard load");
+function toggleMenu(){
+  let m = document.getElementById("menu");
+  m.style.display = m.style.display === "none" ? "block" : "none";
+}
 
-Promise.all([
- fetch('2026-06-08.json').then(r=>r.json()),
- fetch('2026-06-09.json').then(r=>r.json())
-])
-.then(([overview, flows])=>{
- console.log("overview",overview);
- console.log("flows",flows);
+init();
 
- let data = transform(flows);
+async function init(){
+  try{
 
- console.log("cleaned",data);
+    const [overviewRes, flowsRes] = await Promise.all([
+      fetch('2026-06-08.json'),
+      fetch('2026-06-09.json')
+    ]);
 
- buildKPIs(data);
- buildCharts(data);
- buildSankey(top20(data));
- buildTable(top20(data));
-})
-.catch(err=>{
- console.error(err);
- document.getElementById('kpis').innerHTML="ERROR LOADING DATA";
-});
+    console.log("overview status:", overviewRes.status);
+    console.log("flows status:", flowsRes.status);
 
-function transform(flows){
- return flows.map(d=>(
-  {
-   donor: d.sourceOrganisation || d.source || d.from || "Unknown",
-   recipient: d.destinationOrganisation || d.destination || d.to || "Unknown",
-   country: d.destinationLocation?.name || d.country || "Unknown",
-   amount: +d.amountUSD || +d.amount || 0
+    const overview = await overviewRes.json();
+    const flowsRaw = await flowsRes.json();
+
+    console.log("overview json:", overview);
+    console.log("flows json:", flowsRaw);
+
+    const flows = extractArray(flowsRaw);
+
+    console.log("extracted array:", flows);
+
+    const cleaned = transform(flows);
+
+    console.log("cleaned:", cleaned);
+
+    if(cleaned.length === 0){
+      showStatus("No usable data found");
+      return;
+    }
+
+    document.getElementById("status").style.display="none";
+
+    buildKPIs(cleaned);
+    buildCharts(cleaned);
+    buildSankey(top20(cleaned));
+    buildTable(top20(cleaned));
+
+  }catch(err){
+    console.error(err);
+    showStatus("ERROR LOADING DATA")
   }
- )).filter(d=>d.amount>0);
 }
 
-function top20(data){
- return data
-  .sort((a,b)=>b.amount-a.amount)
-  .slice(0,20);
-}
 
-function buildKPIs(data){
- let total = d3.sum(data,d=>d.amount);
- let donors = new Set(data.map(d=>d.donor)).size;
- let recipients = new Set(data.map(d=>d.recipient)).size;
- let countries = new Set(data.map(d=>d.country)).size;
-
- document.getElementById('kpis').innerHTML=`
- <div class="kpi">Total<br>$${fmt(total)}</div>
- <div class="kpi">Donors<br>${donors}</div>
- <div class="kpi">Recipients<br>${recipients}</div>
- <div class="kpi">Countries<br>${countries}</div>`;
-}
-
-function buildCharts(data){
- buildBar("donorChart", group(data,"donor"));
- buildBar("recipientChart", group(data,"recipient"));
-}
-
-function group(data,key){
- return Array.from(d3.rollup(data,v=>d3.sum(v,d=>d.amount),d=>d[key]),([k,v])=>({name:k,value:v}))
-  .sort((a,b)=>b.value-a.value)
-  .slice(0,10);
-}
-
-function buildBar(id,data){
- let svg=d3.select('#'+id);
- svg.selectAll('*').remove();
- let w=300,h=250;
- let x=d3.scaleLinear().domain([0,d3.max(data,d=>d.value)]).range([0,w-100]);
- let y=d3.scaleBand().domain(data.map(d=>d.name)).range([0,h]).padding(0.1);
-
- svg.attr("width",w);
-
- svg.selectAll('rect').data(data).enter().append('rect')
-  .attr('x',100)
-  .attr('y',d=>y(d.name))
-  .attr('width',d=>x(d.value))
-  .attr('height',y.bandwidth())
-  .attr('fill','#009EDB');
-
- svg.selectAll('text.label').data(data).enter().append('text')
-  .attr('x',0)
-  .attr('y',d=>y(d.name)+12)
-  .text(d=>d.name);
-}
-
-function buildSankey(data){
- let svg=d3.select('#sankeyChart');
- svg.selectAll('*').remove();
-
- let nodeMap=new Map();
- let get=n=>{if(!nodeMap.has(n))nodeMap.set(n,{name:n});return nodeMap.get(n)};
-
- let links=[];
- data.forEach(d=>{
-  links.push({source:get(d.donor),target:get(d.recipient),value:d.amount});
-  links.push({source:get(d.recipient),target:get(d.country),value:d.amount});
- });
-
- let sankey=d3.sankey().nodeWidth(15).nodePadding(10).extent([[1,1],[700,350]]);
- let graph=sankey({nodes:Array.from(nodeMap.values()),links});
-
- svg.append('g').selectAll('path').data(graph.links).enter().append('path')
-  .attr('d',d3.sankeyLinkHorizontal())
-  .attr('stroke','#004987')
-  .attr('stroke-width',d=>d.width)
-  .attr('fill','none').attr('opacity',0.4);
-
- svg.append('g').selectAll('rect').data(graph.nodes).enter().append('rect')
-  .attr('x',d=>d.x0).attr('y',d=>d.y0)
-  .attr('width',d=>d.x1-d.x0).attr('height',d=>d.y1-d.y0)
-  .attr('fill','#009EDB');
-}
-
-function buildTable(data){
- let t=document.getElementById('dataTable');
- t.innerHTML='<tr><th>Donor</th><th>Recipient</th><th>Country</th><th>USD</th></tr>';
- data.forEach(d=>{
-  t.innerHTML+=`<tr><td>${d.donor}</td><td>${d.recipient}</td><td>${d.country}</td><td>${fmt(d.amount)}</td></tr>`;
- });
-}
-
-function fmt(x){return d3.format(',')(x)}
-
-</script>
-</body>
-</html>
+/* ===================
+   FIX: extract array
+=================== */
