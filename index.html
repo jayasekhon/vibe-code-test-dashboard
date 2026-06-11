@@ -1,48 +1,328 @@
-<!DOCTYPE html><!DOCTYPE html/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
-
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
-
-  <style>
-    :root {
-      --color-primary: #009EDB;
-      --color-primary-dark: #004987;
-      --color-bg: #F5F7FA;
-      --color-surface: #FFFFFF;
-      --color-surface-alt: #EEF3F7;
-      --color-border: #D9E1E8;
-      --color-text: #1A1A1A;
-      --color-text-muted: #55606D;
-      --color-alert: #B54747;
-      --color-footer: #2F3E4D;
-
-      --radius-sm: 4px;
-      --radius-md: 6px;
-
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-7: 32px;
-      --space-8: 40px;
-
-      --container-max: 1280px;
-      --transition-fast: 120ms ease;
-    }
-
-    * { box-sizing: border-box; }
-
-    html { scroll-behaviour: smooth; }
-
-    body {
-
-<html lang="en-GB">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Global Funding Overview 2026</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sudan Dashboard</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+:root {
+  --primary:#009EDB;
+  --primary-dark:#004987;
+  --neutral-bg:#f5f7f9;
+  --text:#222;
+  --muted:#666;
+  --border:#e2e6ea;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  margin:0;
+  background:var(--neutral-bg);
+  color:var(--text);
+}
+
+/* HEADER */
+.header {
+  background:var(--primary);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 20px;
+}
+
+.logo {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo img {
+  height:42px;
+}
+
+.title {
+  font-weight:700;
+  font-size:24px;
+}
+
+.header-right {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+}
+
+.button {
+  background:white;
+  color:var(--primary);
+  padding:6px 12px;
+  border:none;
+  cursor:pointer;
+  font-weight:500;
+}
+
+.banner {
+  font-size:12px;
+  margin-top:4px;
+}
+
+/* LAYOUT */
+.container {
+  max-width:1400px;
+  margin:20px auto;
+  padding:0 20px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns: 2fr 1fr;
+  gap:20px;
+}
+
+/* CARDS */
+.card {
+  background:white;
+  padding:16px;
+  border:1px solid var(--border);
+}
+
+/* TABLE */
+.table-container {
+  max-height:500px;
+  overflow:auto;
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+}
+
+th, td {
+  text-align:left;
+  padding:8px;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+
+tr:hover {
+  background:#eef7fb;
+  cursor:pointer;
+}
+
+/* KPI */
+.kpis {
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.kpi {
+  background:white;
+  padding:10px;
+  border:1px solid var(--border);
+  text-align:center;
+}
+
+/* MAP */
+canvas {
+  width:100%;
+}
+
+/* MODAL */
+.modal {
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background:white;
+  margin:5% auto;
+  padding:20px;
+  width:70%;
+  max-height:80%;
+  overflow:auto;
+}
+
+/* FOOTER */
+.footer {
+  background:#2c2f33;
+  color:white;
+  padding:20px;
+  margin-top:30px;
+  font-size:13px;
+}
+
+.footer a {
+  color:#ccc;
+  text-decoration:none;
+}
+
+.footer a:hover {
+  text-decoration:underline;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .grid {
+    grid-template-columns:1fr;
+  }
+  .kpis {
+    grid-template-columns: repeat(2,1fr);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <img src="OCHA-Logo.png" alt="OCHA Logo">
+    <div class="title">Sudan Dashboard</div>
+  </div>
+  
+  <div class="header-right">
+    <button class="button" onclick="downloadData()">Download Dataset</button>
+    <div class="banner">For Internal Use Only</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- KPI -->
+<div class="kpis">
+  <div class="kpi"><b id="kpiTotal">0</b><br>Total Reports</div>
+  <div class="kpi"><b id="kpiSources">0</b><br>Sources</div>
+  <div class="kpi"><b id="kpiFormats">0</b><br>Formats</div>
+  <div class="kpi"><b id="kpiRecent">0</b><br>Recent</div>
+</div>
+
+<div class="grid">
+
+<!-- LEFT TABLE -->
+<div class="card">
+  <div class="table-container">
+    <table id="table"></table>
+  </div>
+</div>
+
+<!-- RIGHT MAP -->
+<div class="card">
+  <canvas id="pdfCanvas"></canvas>
+</div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h2 id="modalTitle"></h2>
+    <p id="modalMeta"></p>
+    <p id="modalSummary"></p>
+    <a id="modalLink" target="_blank">View Source</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div><b>Feedback and Contact</b>: <a href="#">contact@un.org</a></div>
+  <div>
+    <b>Legal</b>:
+    <a href="https://www.un.org/en/about-us/terms-of-use">Terms</a> |
+    <a href="https://www.un.org/en/about-us/privacy-notice">Privacy</a> |
+    <a href="https://www.un.org/en/about-us/copyright">Copyright</a>
+  </div>
+  <div>Data from multiple sources; may contain limitations.</div>
+</div>
+
+<script>
+let data = [];
+
+fetch('Sudan_Reports_final_modal_ready.json')
+.then(res=>res.json())
+.then(json=>{
+  console.log("Raw:", json);
+  data=json.records;
+  renderTable(data);
+  updateKPIs(data);
+});
+
+function renderTable(rows){
+  let html = "<tr><th>Date</th><th>Title</th><th>Source</th><th>Format</th></tr>";
+  rows.forEach(r=>{
+    html += `<tr onclick='openModal(${JSON.stringify(r)})'>
+      <td>${r.date}</td>
+      <td>${r.titleShort}</td>
+      <td>${r.source}</td>
+      <td>${r.format}</td>
+    </tr>`;
+  });
+  document.getElementById('table').innerHTML = html;
+}
+
+function updateKPIs(rows){
+  document.getElementById('kpiTotal').innerText = rows.length;
+  document.getElementById('kpiSources').innerText = new Set(rows.map(r=>r.source)).size;
+  document.getElementById('kpiFormats').innerText = new Set(rows.map(r=>r.format)).size;
+  document.getElementById('kpiRecent').innerText = rows.filter(r=>r.date > "2026-01-01").length;
+}
+
+function openModal(record){
+  document.getElementById('modal').style.display='block';
+  document.getElementById('modalTitle').textContent = record.title;
+  document.getElementById('modalMeta').textContent =
+    `${record.date} | ${record.source} | ${record.format}`;
+  document.getElementById('modalSummary').textContent = record.summary;
+  document.getElementById('modalLink').href = record.url;
+}
+
+window.onclick = function(e){
+  if(e.target.id==="modal"){
+    document.getElementById('modal').style.display='none';
+  }
+}
+
+// DOWNLOAD
+function downloadData(){
+  window.location.href = 'Sudan_Reports_final_modal_ready.json';
+}
+
+// PDF VIEWER
+const url = 'sdnglpwestcountryoverviewa0p_20260109.pdf';
+let pdfDoc=null, scale=1.2;
+const canvas=document.getElementById('pdfCanvas');
+const ctx=canvas.getContext('2d');
+
+pdfjsLib.getDocument(url).promise.then(function(pdf){
+  pdfDoc=pdf;
+  renderPage(1);
+});
+
+function renderPage(num){
+  pdfDoc.getPage(num).then(page=>{
+    let viewport = page.getViewport({scale:scale});
+    canvas.height=viewport.height;
+    canvas.width=viewport.width;
+
+    page.render({canvasContext:ctx,viewport:viewport});
+  });
+}
+</script>
+
+</body>
+</html>
